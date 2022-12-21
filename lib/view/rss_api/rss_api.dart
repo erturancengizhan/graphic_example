@@ -1,22 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:graphic_example/controller/lazy_loading_controller.dart';
+import 'package:graphic_example/controller/rss_controller.dart';
 import 'package:intl/intl.dart';
 import 'package:nb_utils/nb_utils.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
-LazyLoadingController _lazyLoadingController =
-    Get.find<LazyLoadingController>();
+RssController _rssController = Get.put(RssController());
 
-class LazyLoadingChart extends StatelessWidget {
-  const LazyLoadingChart({super.key});
+class RssApi extends StatelessWidget {
+  const RssApi({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.pink,
-        title: const Text('LazyLoading Chart'),
+        title: const Text('RSS API Chart'),
       ),
       body: SafeArea(
         child: SizedBox(
@@ -28,30 +27,21 @@ class LazyLoadingChart extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(
-                  _lazyLoadingController.intervalList.length,
+                  _rssController.intervalList.length,
                   (index) {
                     return Row(
                       children: [
                         InkWell(
                           splashColor: Colors.transparent,
                           highlightColor: Colors.transparent,
-                          onTap: () async {
-                            _lazyLoadingController.dataList.value.clear();
-                            _lazyLoadingController.count.value = 0;
-                            /* _lazyLoadingController.minCount.value = 0;
-                            _lazyLoadingController.maxCount.value = 40; */
-                            _lazyLoadingController.selectedInterval.value =
-                                index;
-                            await _lazyLoadingController.getBinanceData(
-                                interval:
-                                    _lazyLoadingController.intervalList[index]);
+                          onTap: () {
+                            _rssController.selectedInterval.value = index;
                           },
                           child: Obx(
                             () => Container(
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(30),
-                                color: _lazyLoadingController
-                                            .selectedInterval.value ==
+                                color: _rssController.selectedInterval.value ==
                                         index
                                     ? Colors.pink
                                     : Colors.white,
@@ -62,13 +52,13 @@ class LazyLoadingChart extends StatelessWidget {
                                 ),
                               ),
                               child: Text(
-                                _lazyLoadingController.intervalList[index],
+                                _rssController.intervalList[index],
                                 style: TextStyle(
-                                    color: _lazyLoadingController
-                                                .selectedInterval.value ==
-                                            index
-                                        ? Colors.white
-                                        : Colors.pink),
+                                    color:
+                                        _rssController.selectedInterval.value ==
+                                                index
+                                            ? Colors.white
+                                            : Colors.pink),
                               ).paddingSymmetric(
                                   horizontal: 8.0, vertical: 2.0),
                             ),
@@ -103,14 +93,17 @@ class LazyLoadingChart extends StatelessWidget {
                       (BuildContext context, ChartSwipeDirection direction) {
                     if (direction == ChartSwipeDirection.start) {
                       debugPrint('Yeni data getiriliyor...');
-                      WidgetsBinding.instance.addPostFrameCallback(
-                        (_) async {
-                          await _lazyLoadingController.getBinanceData(
-                              interval: _lazyLoadingController.intervalList[
-                                  _lazyLoadingController
-                                      .selectedInterval.value]);
-                        },
-                      );
+                      Future.delayed(const Duration(seconds: 10)).then((value) {
+                        WidgetsBinding.instance.addPostFrameCallback(
+                          (_) async {
+                            await _rssController.getRssData(
+                                interval: _rssController.intervalList[
+                                    _rssController.selectedInterval.value],
+                                dateTime: DateTime.fromMillisecondsSinceEpoch(
+                                    _rssController.dataList.value.first["d"]));
+                          },
+                        );
+                      });
                       return SizedBox.fromSize(size: Size.zero);
                     } else {
                       return SizedBox.fromSize(size: Size.zero);
@@ -140,13 +133,11 @@ class LazyLoadingChart extends StatelessWidget {
                     labelAlignment: LabelAlignment.end,
                     //edgeLabelPlacement: EdgeLabelPlacement.hide,
                     visibleMinimum: DateTime.fromMillisecondsSinceEpoch(
-                        _lazyLoadingController
-                                .dataList[_lazyLoadingController.minCount.value]
-                            [0]),
+                        _rssController.dataList[_rssController.minCount.value]
+                            ["d"]),
                     visibleMaximum: DateTime.fromMillisecondsSinceEpoch(
-                        _lazyLoadingController
-                                .dataList[_lazyLoadingController.maxCount.value]
-                            [0]),
+                        _rssController.dataList[_rssController.maxCount.value]
+                            ["d"]),
                   ),
                   primaryYAxis: NumericAxis(
                     anchorRangeToVisiblePoints: true,
@@ -163,15 +154,15 @@ class LazyLoadingChart extends StatelessWidget {
                     placeLabelsNearAxisLine: true,
                   ),
                   series: <ChartSeries>[
-                    /* AreaSeries<dynamic, DateTime>(
+                    AreaSeries<dynamic, DateTime>(
                       animationDuration: 0,
-                      dataSource: _lazyLoadingController.dataList.value,
+                      dataSource: _rssController.dataList.value,
                       xValueMapper: (chartData, _) => DateTime.parse(
                           DateFormat("yyyy-MM-dd HH:mm").format(
                               DateTime.fromMillisecondsSinceEpoch(
-                                  chartData[0]))),
+                                  chartData["d"]))),
                       yValueMapper: (chartData, _) =>
-                          double.parse(chartData[4]),
+                          double.parse(chartData["o"].toString()),
                       borderColor: Colors.green,
                       borderWidth: 3,
                       gradient: LinearGradient(
@@ -183,31 +174,31 @@ class LazyLoadingChart extends StatelessWidget {
                           Colors.green.withOpacity(0),
                         ],
                       ),
-                    ), */
-                    CandleSeries<dynamic, DateTime>(
-                      onRendererCreated: (ChartSeriesController controller) {
+                    ),
+                    /* CandleSeries<dynamic, DateTime>(
+                      /* onRendererCreated: (ChartSeriesController controller) {
                         _lazyLoadingController.seriesController = controller;
-                      },
+                      }, */
                       enableSolidCandles: true,
                       animationDuration: 0,
                       xValueMapper: (chartData, _) => DateTime.parse(
                           DateFormat("yyyy-MM-dd HH:mm").format(
                               DateTime.fromMillisecondsSinceEpoch(
-                                  chartData[0]))),
+                                  chartData["d"]))),
                       highValueMapper: (chartData, _) =>
-                          double.parse(chartData[2]),
+                          double.parse(chartData["h"].toString()),
                       lowValueMapper: (chartData, _) =>
-                          double.parse(chartData[3]),
+                          double.parse(chartData["l"].toString()),
                       openValueMapper: (chartData, _) =>
-                          double.parse(chartData[1]),
+                          double.parse(chartData["o"].toString()),
                       closeValueMapper: (chartData, _) =>
-                          double.parse(chartData[4]),
-                      emptyPointSettings:
-                          EmptyPointSettings(mode: EmptyPointMode.drop),
-                      dataSource: _lazyLoadingController.dataList.value,
+                          double.parse(chartData["c"].toString()),
+                      /* emptyPointSettings:
+                          EmptyPointSettings(mode: EmptyPointMode.drop), */
+                      dataSource: _rssController.dataList.value,
                       enableTooltip: true,
                       name: 'Price',
-                    ),
+                    ), */
                     /* HiloOpenCloseSeries<dynamic, DateTime>(
                       animationDuration: 0,
                       xValueMapper: (chartData, _) => DateTime.parse(
