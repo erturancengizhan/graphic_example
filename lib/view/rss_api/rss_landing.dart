@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:graphic_example/controller/rss_controller.dart';
-import 'package:graphic_example/view/lazy_loading_chart/lazy_loading_chart.dart';
 import 'package:graphic_example/view/rss_api/rss_api.dart';
 import 'package:graphic_example/widgets/loading_animation.dart';
 
@@ -15,7 +14,12 @@ class RssLanding extends StatelessWidget {
     return Obx(() {
       if (_rssController.rssIsLoading.value) {
         _rssController
-            .getRssData(interval: '1g', dateTime: DateTime.now())
+            .getRssData(
+                interval: _rssController
+                    .intervalList[_rssController.selectedInterval.value][0]
+                    .toString(),
+                dateTime: DateTime.now(),
+                isChangeInterval: false)
             .then((value) {
           _rssController.rssIsLoading.value = false;
         });

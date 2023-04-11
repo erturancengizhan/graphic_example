@@ -34,8 +34,15 @@ class RssApi extends StatelessWidget {
                         InkWell(
                           splashColor: Colors.transparent,
                           highlightColor: Colors.transparent,
-                          onTap: () {
+                          onTap: () async {
                             _rssController.selectedInterval.value = index;
+                            await _rssController.getRssData(
+                                interval: _rssController.intervalList[
+                                        _rssController.selectedInterval.value]
+                                        [0]
+                                    .toString(),
+                                dateTime: DateTime.now(),
+                                isChangeInterval: true);
                           },
                           child: Obx(
                             () => Container(
@@ -52,7 +59,8 @@ class RssApi extends StatelessWidget {
                                 ),
                               ),
                               child: Text(
-                                _rssController.intervalList[index],
+                                _rssController.intervalList[index][0]
+                                    .toString(),
                                 style: TextStyle(
                                     color:
                                         _rssController.selectedInterval.value ==
@@ -79,31 +87,24 @@ class RssApi extends StatelessWidget {
                     tooltipDisplayMode: TrackballDisplayMode.groupAllPoints,
                     tooltipSettings: const InteractiveTooltip(
                       enable: true,
-                      /* color: Colors.white
-                          .withOpacity(.8), // ChartInfoCard bg color
-                      textStyle: const TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16.0,
-                      ),
-                      borderColor: Colors.grey, */
                     ),
                   ),
+                  onTrackballPositionChanging: _rssController.toolText,
                   loadMoreIndicatorBuilder:
                       (BuildContext context, ChartSwipeDirection direction) {
+                    _rssController.isSwipe = true;
                     if (direction == ChartSwipeDirection.start) {
-                      debugPrint('Yeni data getiriliyor...');
-                      Future.delayed(const Duration(seconds: 10)).then((value) {
-                        WidgetsBinding.instance.addPostFrameCallback(
-                          (_) async {
-                            await _rssController.getRssData(
-                                interval: _rssController.intervalList[
-                                    _rssController.selectedInterval.value],
-                                dateTime: DateTime.fromMillisecondsSinceEpoch(
-                                    _rssController.dataList.value.first["d"]));
-                          },
-                        );
-                      });
+                      WidgetsBinding.instance.addPostFrameCallback(
+                        (_) async {
+                          await _rssController.getRssData(
+                              interval: _rssController.intervalList[
+                                      _rssController.selectedInterval.value][0]
+                                  .toString(),
+                              dateTime: DateTime.fromMillisecondsSinceEpoch(
+                                  _rssController.dataList.first["d"]),
+                              isChangeInterval: false);
+                        },
+                      );
                       return SizedBox.fromSize(size: Size.zero);
                     } else {
                       return SizedBox.fromSize(size: Size.zero);
@@ -127,11 +128,13 @@ class RssApi extends StatelessWidget {
                       size: 0,
                       width: 0,
                     ),
-                    interval: 1,
-                    intervalType: DateTimeIntervalType.days,
-                    //maximumLabels: 2,
+                    interval: double.parse(_rssController
+                        .intervalList[_rssController.selectedInterval.value][1]
+                        .toString()),
+                    intervalType: _rssController
+                            .intervalList[_rssController.selectedInterval.value]
+                        [2] as DateTimeIntervalType,
                     labelAlignment: LabelAlignment.end,
-                    //edgeLabelPlacement: EdgeLabelPlacement.hide,
                     visibleMinimum: DateTime.fromMillisecondsSinceEpoch(
                         _rssController.dataList[_rssController.minCount.value]
                             ["d"]),
@@ -156,7 +159,7 @@ class RssApi extends StatelessWidget {
                   series: <ChartSeries>[
                     AreaSeries<dynamic, DateTime>(
                       animationDuration: 0,
-                      dataSource: _rssController.dataList.value,
+                      dataSource: _rssController.dataList,
                       xValueMapper: (chartData, _) => DateTime.parse(
                           DateFormat("yyyy-MM-dd HH:mm").format(
                               DateTime.fromMillisecondsSinceEpoch(

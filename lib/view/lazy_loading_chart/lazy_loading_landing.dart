@@ -16,8 +16,11 @@ class LazyLoadingLanding extends StatelessWidget {
       if (_lazyLoadingController.lazyIsLoading.value) {
         _lazyLoadingController
             .getBinanceData(
-                interval: _lazyLoadingController.intervalList[
-                    _lazyLoadingController.selectedInterval.value])
+                interval: _lazyLoadingController
+                    .intervalList[_lazyLoadingController.selectedInterval.value]
+                        [0]
+                    .toString(),
+                isChangeInterval: false)
             .then((value) {
           _lazyLoadingController.lazyIsLoading.value = false;
         });

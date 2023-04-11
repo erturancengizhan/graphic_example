@@ -5,8 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:nb_utils/nb_utils.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
-LazyLoadingController _lazyLoadingController =
-    Get.find<LazyLoadingController>();
+LazyLoadingController _lazyLoadingController = Get.put(LazyLoadingController());
 
 class LazyLoadingChart extends StatelessWidget {
   const LazyLoadingChart({super.key});
@@ -36,15 +35,15 @@ class LazyLoadingChart extends StatelessWidget {
                           splashColor: Colors.transparent,
                           highlightColor: Colors.transparent,
                           onTap: () async {
-                            _lazyLoadingController.dataList.value.clear();
                             _lazyLoadingController.count.value = 0;
-                            /* _lazyLoadingController.minCount.value = 0;
-                            _lazyLoadingController.maxCount.value = 40; */
                             _lazyLoadingController.selectedInterval.value =
                                 index;
+                            _lazyLoadingController.noDataLeft.value = false;
                             await _lazyLoadingController.getBinanceData(
-                                interval:
-                                    _lazyLoadingController.intervalList[index]);
+                                interval: _lazyLoadingController
+                                    .intervalList[index][0]
+                                    .toString(),
+                                isChangeInterval: true);
                           },
                           child: Obx(
                             () => Container(
@@ -62,7 +61,8 @@ class LazyLoadingChart extends StatelessWidget {
                                 ),
                               ),
                               child: Text(
-                                _lazyLoadingController.intervalList[index],
+                                _lazyLoadingController.intervalList[index][0]
+                                    .toString(),
                                 style: TextStyle(
                                     color: _lazyLoadingController
                                                 .selectedInterval.value ==
@@ -89,26 +89,19 @@ class LazyLoadingChart extends StatelessWidget {
                     tooltipDisplayMode: TrackballDisplayMode.groupAllPoints,
                     tooltipSettings: const InteractiveTooltip(
                       enable: true,
-                      /* color: Colors.white
-                          .withOpacity(.8), // ChartInfoCard bg color
-                      textStyle: const TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16.0,
-                      ),
-                      borderColor: Colors.grey, */
                     ),
                   ),
                   loadMoreIndicatorBuilder:
                       (BuildContext context, ChartSwipeDirection direction) {
                     if (direction == ChartSwipeDirection.start) {
-                      debugPrint('Yeni data getiriliyor...');
                       WidgetsBinding.instance.addPostFrameCallback(
                         (_) async {
                           await _lazyLoadingController.getBinanceData(
                               interval: _lazyLoadingController.intervalList[
-                                  _lazyLoadingController
-                                      .selectedInterval.value]);
+                                      _lazyLoadingController
+                                          .selectedInterval.value][0]
+                                  .toString(),
+                              isChangeInterval: false);
                         },
                       );
                       return SizedBox.fromSize(size: Size.zero);
@@ -134,11 +127,13 @@ class LazyLoadingChart extends StatelessWidget {
                       size: 0,
                       width: 0,
                     ),
-                    interval: 1,
-                    intervalType: DateTimeIntervalType.days,
-                    //maximumLabels: 2,
+                    interval: double.parse(_lazyLoadingController.intervalList[
+                            _lazyLoadingController.selectedInterval.value][1]
+                        .toString()),
+                    intervalType: _lazyLoadingController.intervalList[
+                            _lazyLoadingController.selectedInterval.value][2]
+                        as DateTimeIntervalType,
                     labelAlignment: LabelAlignment.end,
-                    //edgeLabelPlacement: EdgeLabelPlacement.hide,
                     visibleMinimum: DateTime.fromMillisecondsSinceEpoch(
                         _lazyLoadingController
                                 .dataList[_lazyLoadingController.minCount.value]
@@ -163,9 +158,9 @@ class LazyLoadingChart extends StatelessWidget {
                     placeLabelsNearAxisLine: true,
                   ),
                   series: <ChartSeries>[
-                    /* AreaSeries<dynamic, DateTime>(
+                    AreaSeries<dynamic, DateTime>(
                       animationDuration: 0,
-                      dataSource: _lazyLoadingController.dataList.value,
+                      dataSource: _lazyLoadingController.dataList,
                       xValueMapper: (chartData, _) => DateTime.parse(
                           DateFormat("yyyy-MM-dd HH:mm").format(
                               DateTime.fromMillisecondsSinceEpoch(
@@ -183,50 +178,7 @@ class LazyLoadingChart extends StatelessWidget {
                           Colors.green.withOpacity(0),
                         ],
                       ),
-                    ), */
-                    CandleSeries<dynamic, DateTime>(
-                      onRendererCreated: (ChartSeriesController controller) {
-                        _lazyLoadingController.seriesController = controller;
-                      },
-                      enableSolidCandles: true,
-                      animationDuration: 0,
-                      xValueMapper: (chartData, _) => DateTime.parse(
-                          DateFormat("yyyy-MM-dd HH:mm").format(
-                              DateTime.fromMillisecondsSinceEpoch(
-                                  chartData[0]))),
-                      highValueMapper: (chartData, _) =>
-                          double.parse(chartData[2]),
-                      lowValueMapper: (chartData, _) =>
-                          double.parse(chartData[3]),
-                      openValueMapper: (chartData, _) =>
-                          double.parse(chartData[1]),
-                      closeValueMapper: (chartData, _) =>
-                          double.parse(chartData[4]),
-                      emptyPointSettings:
-                          EmptyPointSettings(mode: EmptyPointMode.drop),
-                      dataSource: _lazyLoadingController.dataList.value,
-                      enableTooltip: true,
-                      name: 'Price',
                     ),
-                    /* HiloOpenCloseSeries<dynamic, DateTime>(
-                      animationDuration: 0,
-                      xValueMapper: (chartData, _) => DateTime.parse(
-                          DateFormat("yyyy-MM-dd HH:mm").format(
-                              DateTime.fromMillisecondsSinceEpoch(
-                                  chartData[0]))),
-                      highValueMapper: (chartData, _) =>
-                          double.parse(chartData[2]),
-                      lowValueMapper: (chartData, _) =>
-                          double.parse(chartData[3]),
-                      openValueMapper: (chartData, _) =>
-                          double.parse(chartData[1]),
-                      closeValueMapper: (chartData, _) =>
-                          double.parse(chartData[4]),
-                      dataSource: _lazyLoadingController.dataList.value,
-                      emptyPointSettings:
-                          EmptyPointSettings(mode: EmptyPointMode.drop),
-                      enableTooltip: true,
-                    ), */
                   ],
                 ),
               ),

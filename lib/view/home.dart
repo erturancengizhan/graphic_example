@@ -32,7 +32,7 @@ class Home extends StatelessWidget {
                 onTap: () {
                   _lazyLoadingController.lazyIsLoading.value = true;
                   Get.to(() => const LazyLoadingLanding())!.then((value) {
-                    _lazyLoadingController.dataList.value.clear();
+                    _lazyLoadingController.dataList.clear();
                     _lazyLoadingController.count.value = 0;
                   });
                 },
@@ -56,7 +56,7 @@ class Home extends StatelessWidget {
                 onTap: () {
                   _rssController.rssIsLoading.value = true;
                   Get.to(() => const RssLanding())!.then((value) {
-                    _rssController.dataList.value.clear();
+                    _rssController.dataList.clear();
                   });
                 },
                 child: Container(

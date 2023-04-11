@@ -2,9 +2,11 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
 
 class RssController extends GetxController {
-  var baseURL = "https://api.rss.com.tr/api/foreks/graph/USD-TRL/";
+  var baseURL = "https://api.rss.com.tr/api/app/foreks/graph/currency1/";
   var dataList = [].obs;
   var maxCount = 0.obs;
   var minCount = 0.obs;
@@ -12,17 +14,40 @@ class RssController extends GetxController {
   var oldMaxIndex = 0.obs;
   var rssIsLoading = false.obs;
   var selectedInterval = 0.obs;
+  var isSwipe = false;
 
   var intervalList = [
-    "1g",
-    "1h",
-    "1a",
-    "3a",
-    "1y",
+    ["1g", 1, DateTimeIntervalType.days],
+    ["1h", 7, DateTimeIntervalType.days],
+    ["1a", 1, DateTimeIntervalType.months],
+    ["1y", 1, DateTimeIntervalType.years],
   ];
 
+  void toolText(TrackballArgs args) {
+    var index = args.chartPointInfo.dataPointIndex;
+    if (index! >= 0 && index <= 40 && !isSwipe) {
+      index = minCount.value + index;
+    }
+    var symbol = 'USD/TRY';
+    if (dataList.isNotEmpty && dataList.length >= index) {
+      var data = dataList[index];
+      var formattedDate = '';
+      if (data['d'] != null) {
+        formattedDate = DateFormat.yMMMMd()
+            .add_jm()
+            .format(DateTime.fromMillisecondsSinceEpoch(data['d']))
+            .toString();
+      }
+      var format = '$formattedDate\n$symbol: ${data["c"]}';
+
+      args.chartPointInfo.label = format;
+    }
+  }
+
   Future<void> getRssData(
-      {required String interval, required DateTime dateTime}) async {
+      {required String interval,
+      required DateTime dateTime,
+      required bool isChangeInterval}) async {
     try {
       List timeList = dateTime.toString().split(' ');
       String date = timeList[0];
@@ -35,23 +60,27 @@ class RssController extends GetxController {
       var response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         var data = json.decode(response.body);
+        if (isChangeInterval) {
+          dataList.clear();
+        }
         if (dataList.isNotEmpty) {
           dataList.removeAt(0);
         }
-        dataList.value.insertAll(0, data);
-        if (dataList.length == 500) {
-          minCount.value = dataList.length - 41;
+        dataList.insertAll(0, data);
+
+        if (dataList.length < 41) {
+          minCount.value = 0;
           maxCount.value = dataList.length - 1;
         } else {
-          minCount.value = 499;
-          maxCount.value = 539;
+          if (dataList.length == (data as List).length) {
+            minCount.value = dataList.length - 41;
+            maxCount.value = dataList.length - 1;
+          } else {
+            minCount.value = data.length - 1;
+            maxCount.value = data.length + 39;
+          }
         }
-
-        debugPrint('Başarılı! $dataList');
-        debugPrint('dataList lenght: ${dataList.length}');
-        debugPrint('data lenght: ${data.length}');
-        debugPrint('minCount: ${minCount.value}');
-        debugPrint('maxCount: ${maxCount.value}');
+        debugPrint('Basarılı! $dataList');
       } else {
         debugPrint('Hata! ${response.statusCode}');
       }

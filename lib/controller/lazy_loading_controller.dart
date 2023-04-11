@@ -11,26 +11,25 @@ class LazyLoadingController extends GetxController {
   var selectedInterval = 5.obs;
   var minCount = 0.obs;
   var maxCount = 0.obs;
+  var noDataLeft = false.obs;
 
   ChartSeriesController? seriesController;
 
-  get getDataList => dataList.value;
-  int get getCount => count.value;
-
   var intervalList = [
-    "1m",
-    "5m",
-    "15m",
-    "30m",
-    "1h",
-    "1d",
-    "1w",
-    "1M",
+    ["1m", 1, DateTimeIntervalType.minutes],
+    ["5m", 5, DateTimeIntervalType.minutes],
+    ["15m", 15, DateTimeIntervalType.minutes],
+    ["30m", 30, DateTimeIntervalType.minutes],
+    ["1h", 1, DateTimeIntervalType.hours],
+    ["1d", 1, DateTimeIntervalType.days],
+    ["1w", 7, DateTimeIntervalType.days],
+    ["1M", 1, DateTimeIntervalType.months],
   ];
 
-  Future<void> getBinanceData({required String interval}) async {
+  Future<void> getBinanceData(
+      {required String interval, required bool isChangeInterval}) async {
     try {
-      if (count.value == dataList.length) {
+      if (noDataLeft.value == false) {
         count.value += 200;
         var limit = count;
         var url =
@@ -38,27 +37,29 @@ class LazyLoadingController extends GetxController {
         var response = await http.get(Uri.parse(url));
         if (response.statusCode == 200) {
           var data = json.decode(response.body);
-          dataList.value = data;
-          debugPrint('count: ' + count.value.toString());
-          if (limit.value == 200) {
-            debugPrint('if');
-            minCount.value = dataList.length - 39;
-            maxCount.value = dataList.length - 1;
-            debugPrint('minCount: ' + minCount.value.toString());
-            debugPrint('maxCount: ' + maxCount.value.toString());
-            debugPrint('dataList.length: ' + dataList.value.length.toString());
-          } else {
-            debugPrint('else');
-            minCount.value = 200;
-            maxCount.value = 238;
-            /* minCount.value = dataList.length - (count.value - 200);
-          maxCount.value = dataList.length - 1 - (count.value - 200) + 39; */
-            debugPrint('minCount: ' + minCount.value.toString());
-            debugPrint('maxCount: ' + maxCount.value.toString());
-            debugPrint('dataList.length: ' + dataList.value.length.toString());
+          if (isChangeInterval) {
+            dataList.clear();
           }
-
-          debugPrint('Başarılı! $dataList');
+          if (dataList.length == (data as List).length) {
+            noDataLeft.value = true;
+          } else {
+            if (data.length < 200) {
+              noDataLeft.value = true;
+            }
+            dataList.value = data;
+            if (dataList.length == 200) {
+              minCount.value = dataList.length - 39;
+              maxCount.value = dataList.length - 1;
+            } else {
+              if (dataList.length < 200) {
+                minCount.value = dataList.length - 39;
+                maxCount.value = dataList.length - 1;
+              } else {
+                minCount.value = 200;
+                maxCount.value = 238;
+              }
+            }
+          }
         } else {
           debugPrint('Hata! ${response.statusCode}');
         }
